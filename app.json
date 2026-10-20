@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "semaforo-uv",
-    "slug": "semaforo-uv",
+    "name": "SunShield",
+    "slug": "sunshield",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "semaforouv",
+    "scheme": "sunshield",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -32,7 +32,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
