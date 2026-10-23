@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Firmware del semáforo: contraseña del WiFi y clave del dispositivo
+hardware/firmware/semaforo_uv/secretos.h

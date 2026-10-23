@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sunshield",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -33,7 +33,14 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SunShield usa tus fotos para que puedas elegir tu foto de perfil.",
+          "cameraPermission": "SunShield usa la cámara para que puedas tomarte una foto de perfil."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

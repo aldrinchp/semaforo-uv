@@ -4,11 +4,12 @@ import { strings, type Lang } from "@/i18n/strings";
 
 const STORAGE_KEY = "lang";
 
-// Idioma guardado; si no hay, el del teléfono (español si empieza por "es", si no inglés).
+// Idioma guardado; si no hay, el del teléfono (español, kichwa o, si es otro, inglés).
 function initialLang(): Lang {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === "es" || saved === "en") return saved;
-  return Intl.DateTimeFormat().resolvedOptions().locale.startsWith("es") ? "es" : "en";
+  if (saved && saved in strings) return saved as Lang;
+  const phone = Intl.DateTimeFormat().resolvedOptions().locale.slice(0, 2);
+  return phone === "es" || phone === "qu" ? phone : "en";
 }
 
 type LanguageState = { lang: Lang; setLang: (lang: Lang) => void; t: typeof strings.es };

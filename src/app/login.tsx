@@ -11,26 +11,27 @@ import {
 } from "react-native";
 import type { AuthError } from "@supabase/supabase-js";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { Logo } from "@/components/Logo";
+import { PasswordField } from "@/components/PasswordField";
+import { lastEmail } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { signIn, signUp } from "@/services/auth";
+import { signIn, signInAsGuest, signUp } from "@/services/auth";
+import { colors } from "@/theme";
 
 export default function Login() {
   const { t } = useLanguage();
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState("");
+  // Abre en "Crea tu cuenta" (ahí está "Entrar sin cuenta"), salvo que en este celular ya se haya
+  // entrado con correo: entonces abre en "Inicia sesión" con ese correo ya escrito.
+  const [email, setEmail] = useState(() => lastEmail() ?? "");
+  const [isRegister, setIsRegister] = useState(() => !lastEmail());
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function handleSubmit() {
-    if (!email.trim() || !password) {
-      Alert.alert(t.missingTitle, t.missingBody);
-      return;
-    }
+  // No navegamos después de entrar: al cambiar la sesión, _layout.tsx muestra la pantalla que toca.
+  async function run(action: () => Promise<void>) {
     setBusy(true);
     try {
-      await (isRegister ? signUp : signIn)(email.trim(), password);
-      // No navegamos aquí: al cambiar la sesión, _layout.tsx muestra la pantalla principal.
+      await action();
     } catch (e) {
       const { code, message } = e as AuthError;
       Alert.alert(t.errorTitle, (code && t.authErrors[code]) || message);
@@ -39,10 +40,29 @@ export default function Login() {
     }
   }
 
+  // El correo recordado solo se usa para entrar: al pasar a "Crea tu cuenta" se vacía el campo y al
+  // volver a "Inicia sesión" se repone. Si el usuario escribió otro correo, se respeta.
+  function toggleMode() {
+    const remembered = lastEmail();
+    if (!isRegister && email === remembered) setEmail("");
+    if (isRegister && !email && remembered) setEmail(remembered);
+    setIsRegister(!isRegister);
+  }
+
+  function handleSubmit() {
+    if (!email.trim() || !password) {
+      Alert.alert(t.missingTitle, t.missingBody);
+      return;
+    }
+    run(() => (isRegister ? signUp : signIn)(email.trim(), password));
+  }
+
   return (
     // "padding" en ambas plataformas: con edge-to-edge, Android ya no encoge la pantalla solo.
     <KeyboardAvoidingView style={styles.container} behavior="padding">
-      <Text style={styles.title}>SunShield</Text>
+      <View style={styles.title}>
+        <Logo size={34} />
+      </View>
       <Text style={styles.subtitle}>{isRegister ? t.registerSubtitle : t.signInSubtitle}</Text>
 
       <TextInput
@@ -55,26 +75,7 @@ export default function Login() {
         autoComplete="email"
         keyboardType="email-address"
       />
-      <View style={[styles.field, styles.passwordRow]}>
-        <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder={t.password}
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          autoComplete={isRegister ? "new-password" : "current-password"}
-        />
-        <Pressable
-          onPress={() => setShowPassword(!showPassword)}
-          accessibilityRole="button"
-          accessibilityLabel={showPassword ? t.hidePassword : t.showPassword}
-          hitSlop={8}
-        >
-          <Text style={styles.toggle}>{showPassword ? t.hide : t.show}</Text>
-        </Pressable>
-      </View>
+      <PasswordField value={password} onChangeText={setPassword} isNew={isRegister} />
 
       <Pressable
         style={[styles.button, busy && styles.buttonDisabled]}
@@ -89,11 +90,28 @@ export default function Login() {
         )}
       </Pressable>
 
-      <Pressable onPress={() => setIsRegister(!isRegister)} accessibilityRole="button">
+      <Pressable onPress={toggleMode} accessibilityRole="button">
         <Text style={styles.link}>
           {isRegister ? t.toSignIn : t.toRegister}
         </Text>
       </Pressable>
+
+      {/* Solo al crear cuenta: quien ya tiene una entra con su correo. */}
+      {isRegister && (
+        <>
+          <Text style={styles.or}>{t.or}</Text>
+          <Pressable
+            style={[styles.guestButton, busy && styles.buttonDisabled]}
+            onPress={() => run(signInAsGuest)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityHint={t.guestHint}
+          >
+            <Text style={styles.guestButtonText}>{t.guestButton}</Text>
+          </Pressable>
+          <Text style={styles.guestHint}>{t.guestHint}</Text>
+        </>
+      )}
 
       <LanguageToggle />
     </KeyboardAvoidingView>
@@ -109,9 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    textAlign: "center",
+    alignItems: "center",
   },
   subtitle: {
     fontSize: 18,
@@ -122,28 +138,16 @@ const styles = StyleSheet.create({
   field: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
+    borderRadius: 12,
   },
   input: {
     padding: 12,
     fontSize: 16,
     color: "#000",
   },
-  passwordRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  passwordInput: {
-    flex: 1,
-  },
-  toggle: {
-    color: "#f57c00",
-    fontWeight: "bold",
-    paddingHorizontal: 12,
-  },
   button: {
-    backgroundColor: "#f57c00",
-    borderRadius: 8,
+    backgroundColor: colors.accent,
+    borderRadius: 12,
     padding: 14,
     alignItems: "center",
   },
@@ -156,8 +160,29 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   link: {
-    color: "#f57c00",
+    color: colors.accent,
     textAlign: "center",
     padding: 8,
+  },
+  or: {
+    textAlign: "center",
+    color: colors.muted,
+  },
+  guestButton: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
+  guestButtonText: {
+    color: colors.accent,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  guestHint: {
+    textAlign: "center",
+    fontSize: 13,
+    color: colors.muted,
   },
 });
